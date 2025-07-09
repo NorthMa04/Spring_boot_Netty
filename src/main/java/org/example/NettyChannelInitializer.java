@@ -30,7 +30,7 @@ public class NettyChannelInitializer extends ChannelInitializer<SocketChannel> {
                 // 3）空闲检测：60s 无读，连续 5 次才算真正空闲
                 .addLast(new CustomIdleStateHandler(
                         60, 0, 0, TimeUnit.SECONDS,
-                        1
+                        5
                 ))
 
                 // 4）休眠 & 唤醒逻辑

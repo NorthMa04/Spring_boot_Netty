@@ -43,7 +43,7 @@ public class SleepStateHandler extends ChannelInboundHandlerAdapter {
                             },
                             60,  // 首次延迟30s
                             60,  // 之后每隔30s
-                            TimeUnit.SECONDS
+                            TimeUnit.MINUTES
                     );
                 } else {
                     // 如果发送失败，打印原因

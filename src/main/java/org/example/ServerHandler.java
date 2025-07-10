@@ -9,6 +9,7 @@ import io.netty.util.AttributeKey;
 import org.springframework.stereotype.Component;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -71,7 +72,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
             return;
         }
         Iterator<String> fn = dataNode.fieldNames();
-        if (!fn.hasNext() || !"Time".equals(fn.next())) {
+        if (!fn.hasNext() || !"time".equals(fn.next())) {
             ctx.writeAndFlush("非法文件\n");
             return;
         }
@@ -94,17 +95,20 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
         // 写入日志
         try {
+            // ServerHandler 中的 writer 初始化部分
             BufferedWriter writer = writers.computeIfAbsent(clientId, id -> {
                 try {
                     File dir = new File("logs");
                     if (!dir.exists()) dir.mkdirs();
-                    return new BufferedWriter(
-                            new FileWriter(new File(dir, id + ".txt"), true)
-                    );
+                    return new BufferedWriter(new OutputStreamWriter(
+                            new FileOutputStream(new File(dir, id + ".txt"), true),
+                            StandardCharsets.UTF_8
+                    ));
                 } catch (IOException ex) {
                     throw new UncheckedIOException(ex);
                 }
             });
+
             synchronized (writer) {
                 writer.write(out.toString());
                 writer.flush();

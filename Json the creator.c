@@ -2,54 +2,45 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-#include <direct.h>    // _mkdir
+#include <direct.h>
 #include <errno.h>
 #include <string.h>
-#define MAX_PATH 260
-enum Quality { QIHAO, LIANGHAO, YIBAN, PUTONG, BUJIGE };
+#define MAX_PATH 100
+#define OUT_DIR  "D:\\"
+#define OUT_FILE "testdata.json"
+
+enum Quality { EXCELLENT, GOOD, AVERAGE, FAIR, FAIL };
 
 static const char* qualityNames[] = {
-    "¼«ºÃ",
-    "Á¼ºÃ",
-    "Ò»°ã",
-    "ÆÕÍ¨",
-    "²»¼°¸ñ"
+    "Excellent",
+    "Good",
+    "Average",
+    "Fair",
+    "Fail"
 };
 
 int main(void) {
-    const char* outDir = "D:\\";
-    const char* outFile = "testdata.json";
     char fullpath[MAX_PATH];
+    snprintf(fullpath, sizeof(fullpath), "%s%s", OUT_DIR, OUT_FILE);
 
-    /* Èç¹ûÄ¿±êÄ¿Â¼²»´æÔÚ£¬¿ÉÈ¡Ïû×¢ÊÍÒÔÏÂÁ½ĞĞ½øĞĞ´´½¨ */
-    // if (_mkdir(outDir) != 0 && errno != EEXIST) {
-    //     fprintf(stderr, "ÎŞ·¨´´½¨Ä¿Â¼ %s: %s\n", outDir, strerror(errno));
-    //     return EXIT_FAILURE;
-    // }
-
-    /* Æ´½ÓÍêÕûÂ·¾¶ */
-    snprintf(fullpath, sizeof(fullpath), "%s%s", outDir, outFile);
-
-    /* ³õÊ¼»¯Ëæ»úÖÖ×Ó */
+    /* åˆå§‹åŒ–éšæœºæ•°ç§å­å¹¶ç”Ÿæˆ ClientID */
     srand((unsigned)time(NULL));
-
-    /* Éú³É 100000¨C999999 µÄËæ»ú ClientID */
     int clientID = rand() % 900000 + 100000;
 
-    /* Ëæ»úÑ¡È¡ÖÊÁ¿µÈ¼¶ */
+    /* éšæœºé€‰å–è´¨é‡ç­‰çº§ */
     int q = rand() % (sizeof(qualityNames) / sizeof(qualityNames[0]));
 
-    /* »ñÈ¡²¢¸ñÊ½»¯µ±Ç°Ê±¼ä */
+    /* è·å–å½“å‰ç³»ç»Ÿæ—¶é—´ */
     time_t t = time(NULL);
     struct tm tm_info;
     localtime_s(&tm_info, &t);
     char datetime[20];
     strftime(datetime, sizeof(datetime), "%Y-%m-%d %H:%M:%S", &tm_info);
 
-    /* Ğ´Èë JSON ÎÄ¼ş */
+    /* å†™å…¥ JSON æ–‡ä»¶ */
     FILE* fp = fopen(fullpath, "w");
     if (!fp) {
-        fprintf(stderr, "ÎŞ·¨´ò¿ªÎÄ¼ş %s: %s\n", fullpath, strerror(errno));
+        fprintf(stderr, "Cannot open file %s: %s\n", fullpath, strerror(errno));
         return EXIT_FAILURE;
     }
 

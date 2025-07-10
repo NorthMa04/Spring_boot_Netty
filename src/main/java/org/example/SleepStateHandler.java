@@ -41,9 +41,9 @@ public class SleepStateHandler extends ChannelInboundHandlerAdapter {
                                     System.out.println("** 唤醒尝试 read(): " + ctx.channel());
                                 }
                             },
-                            60,  // 首次延迟30s
-                            60,  // 之后每隔30s
-                            TimeUnit.MINUTES
+                            30,  // 首次延迟30s
+                            15,  // 之后每隔30s
+                            TimeUnit.SECONDS
                     );
                 } else {
                     // 如果发送失败，打印原因

@@ -74,7 +74,8 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         JsonNode timeNode    = dataNode.get("time");
         JsonNode idNode      = dataNode.get("clientID");
         JsonNode qualityNode = dataNode.get("quality");
-        if (timeNode == null || idNode == null || qualityNode == null) {
+        JsonNode massNode    = dataNode.get("mass");
+        if (timeNode == null || idNode == null || qualityNode == null||massNode==null) {
             ctx.writeAndFlush("非法文件4\n");
             return;
         }
@@ -82,6 +83,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         String timeStr  = timeNode.asText();
         String jsonId   = idNode.asText();       // 改用 data.ID
         String quality  = qualityNode.asText();
+        int mass  = massNode.asInt();
 
         // 解析时间
         Timestamp ts;
@@ -92,11 +94,36 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
             ctx.writeAndFlush("时间格式错误\n");
             return;
         }
-
-        // 3）写库：把 time、data.ID (映射到 client_id)、quality 写入 data_log
-        String sql = "INSERT INTO data_log(time, client_id, quality) VALUES (?, ?, ?)";
+        if (!jsonId.matches("[0-9A-Za-z_]+")) {
+            logger.warn("[EARLY RETURN] 不合法的 clientID 作为表名: {}", jsonId);
+            ctx.writeAndFlush("非法 clientID\n");
+            return;
+        }
+  String tableName= jsonId ;
+        String createTableSql = ""
+                + "CREATE TABLE IF NOT EXISTS `" + tableName + "` ("
+                + "  `id` BIGINT NOT NULL AUTO_INCREMENT,"
+                + "  `time` DATETIME NOT NULL,"
+                + "  `clientID` VARCHAR(50) NOT NULL,"
+                + "  `quality` VARCHAR(100) NOT NULL,"
+                + "  `mass` INT NOT NULL,"
+                + "  PRIMARY KEY (`id`)"
+                + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
         try {
-            jdbcTemplate.update(sql, ts, jsonId, quality);
+            logger.info("建表检查/创建：{}", tableName);
+            jdbcTemplate.execute(createTableSql);
+        } catch (Exception ex) {
+            logger.error("[EARLY RETURN] 创建表失败：{}", tableName, ex);
+            ctx.writeAndFlush("建表失败\n");
+            return;
+        }
+        // 3）写库：把 time、data.ID (映射到 client_id)、quality 写入 data_log
+        String sql = "INSERT INTO `"
+                + tableName
+                + "` (`time`, `clientID`, `quality`, `mass`) "
+                + "VALUES (?, ?, ?, ?)";
+        try {
+            jdbcTemplate.update(sql, ts, jsonId, quality,mass);
             ctx.writeAndFlush("已写入数据库：ID=" + jsonId + "\n");
         } catch (Exception ex) {
             ex.printStackTrace();

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.channel.*;
 import io.netty.util.AttributeKey;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
@@ -17,7 +19,7 @@ import java.util.Iterator;
 @ChannelHandler.Sharable
 @Component
 public class ServerHandler extends SimpleChannelInboundHandler<String> {
-
+    private static final Logger logger = LoggerFactory.getLogger(ServerHandler.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     // 用于通道生命周期管理的外层 clientId（不写库，仅校验）
     private static final AttributeKey<String> CLIENT_ID_KEY = AttributeKey.valueOf("clientId");
@@ -31,9 +33,9 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
 
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, String msg) {
-
+        logger.info("Received raw JSON: {}", msg);
         if (msg == null || msg.trim().isEmpty()) {
-            ctx.writeAndFlush("非法文件\n");
+            ctx.writeAndFlush("非法文件1\n");
             return;
         }
 
@@ -41,14 +43,14 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         try {
             root = MAPPER.readTree(msg);
         } catch (JsonProcessingException e) {
-            ctx.writeAndFlush("非法文件\n");
+            ctx.writeAndFlush("非法文件2\n");
             return;
         } catch (Exception e) {
             ctx.writeAndFlush("内部错误\n");
             return;
         }
 
-        // 1）外层校验用 clientId
+        /* 1）外层校验用 clientId
         if (!root.hasNonNull("clientId")) {
             ctx.writeAndFlush("非法客户端\n");
             return;
@@ -60,11 +62,11 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         if (Boolean.TRUE != ctx.channel().attr(COUNTED_KEY).get()) {
             ctx.channel().attr(COUNTED_KEY).set(true);
         }
-
+*/
         // 2）内部 data 节点
         JsonNode dataNode = root.get("data");
         if (dataNode == null || !dataNode.isObject()) {
-            ctx.writeAndFlush("非法文件\n");
+            ctx.writeAndFlush("非法文件3\n");
             return;
         }
 
@@ -73,7 +75,7 @@ public class ServerHandler extends SimpleChannelInboundHandler<String> {
         JsonNode idNode      = dataNode.get("clientID");
         JsonNode qualityNode = dataNode.get("quality");
         if (timeNode == null || idNode == null || qualityNode == null) {
-            ctx.writeAndFlush("非法文件\n");
+            ctx.writeAndFlush("非法文件4\n");
             return;
         }
 

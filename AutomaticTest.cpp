@@ -17,22 +17,22 @@ using namespace std;
 #pragma comment(lib, "Ws2_32.lib")
 
 // -----------------------------------------------------------------------------
-// ÔÚ´Ë´¦¶¨Òå clientID£¬ËùÓĞ°üÖĞ´ËÖµ±£³Ö²»±ä
+// åœ¨æ­¤å¤„å®šä¹‰ clientIDï¼Œæ‰€æœ‰åŒ…ä¸­æ­¤å€¼ä¿æŒä¸å˜
 
 
-// Êä³öÎÄ¼şÂ·¾¶
+// è¾“å‡ºæ–‡ä»¶è·¯å¾„
 const std::string OUT_PATH = "D:\\testdata.json";
 
-// ·şÎñÆ÷µØÖ·Óë¶Ë¿Ú
+// æœåŠ¡å™¨åœ°å€ä¸ç«¯å£
 const char* SERVER = "127.0.0.1";
 const char* SERVER_PORT = "8080";
 
-// ÖÊÁ¿Ã¶¾Ù¶ÔÓ¦Ó¢ÎÄ
+// è´¨é‡æšä¸¾å¯¹åº”è‹±æ–‡
 const std::vector<std::string> QUALITY_NAMES = {
     "Excellent", "Good", "Average", "Fair", "Fail"
 };
 
-// ½ÓÊÕÏß³Ì£ºÑ­»· recv ²¢´òÓ¡
+// æ¥æ”¶çº¿ç¨‹ï¼šå¾ªç¯ recv å¹¶æ‰“å°
 void receiveMessages(SOCKET sock) {
     char buffer[4096];
     while (true) {
@@ -49,7 +49,7 @@ void receiveMessages(SOCKET sock) {
     }
 }
 
-// ·µ»Øµ±Ç°Ê±¼ä×Ö·û´® "YYYY-MM-DD HH:MM:SS"
+// è¿”å›å½“å‰æ—¶é—´å­—ç¬¦ä¸² "YYYY-MM-DD HH:MM:SS"
 std::string nowString() {
     std::time_t t = std::time(nullptr);
     std::tm tm;
@@ -63,14 +63,14 @@ int main() {
     SetConsoleOutputCP(CP_UTF8);
     SetConsoleCP(CP_UTF8);
     string CLIENT_ID="client344158";
-    // 1. ³õÊ¼»¯ Winsock
+    // 1. åˆå§‹åŒ– Winsock
     WSADATA wsa;
     if (WSAStartup(MAKEWORD(2, 2), &wsa) != 0) {
         std::cerr << "WSAStartup failed\n";
         return 1;
     }
 
-    // 2. ½âÎö·şÎñÆ÷µØÖ·
+    // 2. è§£ææœåŠ¡å™¨åœ°å€
     addrinfo hints = {}, * res = nullptr;
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
@@ -80,7 +80,7 @@ int main() {
         return 1;
     }
 
-    // 3. ´´½¨²¢Á¬½ÓÌ×½Ó×Ö
+    // 3. åˆ›å»ºå¹¶è¿æ¥å¥—æ¥å­—
     SOCKET sock = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
     if (sock == INVALID_SOCKET ||
         connect(sock, res->ai_addr, (int)res->ai_addrlen) == SOCKET_ERROR) {
@@ -92,22 +92,22 @@ int main() {
     freeaddrinfo(res);
     std::cout << "Connected to " << SERVER << ":" << SERVER_PORT << "\n";
 
-    // 4. Æô¶¯½ÓÊÕÏß³Ì
+    // 4. å¯åŠ¨æ¥æ”¶çº¿ç¨‹
     std::thread recvThread(receiveMessages, sock);
     recvThread.detach();
 
-    // Ëæ»úÊıÉú³ÉÆ÷£ºÖÊÁ¿Ë÷ÒıÓë mass Öµ
+    // éšæœºæ•°ç”Ÿæˆå™¨ï¼šè´¨é‡ç´¢å¼•ä¸ mass å€¼
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> distQ(0, (int)QUALITY_NAMES.size() - 1);
     std::uniform_int_distribution<> distMass(0, 10);
 
-    // 5. Ö÷·¢ËÍÑ­»·
+    // 5. ä¸»å‘é€å¾ªç¯
     while (true) {
         int qualityIdx = distQ(gen);
         int mass = distMass(gen);
 
-        // ¹¹½¨ÄÚ²ã JSON
+        // æ„å»ºå†…å±‚ JSON
         std::ostringstream inner;
         inner << "{\n"
             << "  \"time\": \"" << nowString() << "\",\n"
@@ -117,14 +117,14 @@ int main() {
             << "}";
         std::string innerJson = inner.str();
 
-        // °ü×°µ½Íâ²ã "data"
+        // åŒ…è£…åˆ°å¤–å±‚ "data"
         std::ostringstream wrapper;
-        wrapper << "{\n"
-            << "  \"data\": " << innerJson << "\n"
-            << "}";
+        wrapper
+            << innerJson << "\n";
+      
         std::string payload = wrapper.str();
 
-        // Ğ´±¾µØÎÄ¼ş£¨¸²¸Ç£©
+        // å†™æœ¬åœ°æ–‡ä»¶ï¼ˆè¦†ç›–ï¼‰
         {
             std::ofstream ofs(OUT_PATH, std::ios::binary);
             if (ofs) {
@@ -135,7 +135,7 @@ int main() {
             }
         }
 
-        // ·¢ËÍµ½·şÎñÆ÷
+        // å‘é€åˆ°æœåŠ¡å™¨
         int sent = send(sock, payload.c_str(), (int)payload.size(), 0);
         if (sent == SOCKET_ERROR) {
             std::cerr << "send failed: " << WSAGetLastError() << "\n";
@@ -144,11 +144,11 @@ int main() {
         std::cout << "[Sender] Sent " << sent << " bytes:\n"
             << payload << "\n";
 
-        // 0.5 Ãë¼ä¸ô
+        // 0.5 ç§’é—´éš”
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
     }
 
-    // 6. ÇåÀí
+    // 6. æ¸…ç†
     closesocket(sock);
     WSACleanup();
     return 0;

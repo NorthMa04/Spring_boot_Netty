@@ -18,23 +18,16 @@ public class NettyChannelInitializer extends ChannelInitializer<SocketChannel> {
     private ServerHandler serverHandler;
 
     @Autowired
-    private SleepStateHandler sleepStateHandler;
+    private SleepStateHandler sleepStateHandler;  // 一定要注入
 
     @Override
     protected void initChannel(SocketChannel ch) {
         ch.pipeline()
-                // JSON 拆帧
                 .addLast(new JsonObjectDecoder())
-                // 编码/解码
                 .addLast(new StringDecoder(StandardCharsets.UTF_8))
                 .addLast(new StringEncoder(StandardCharsets.UTF_8))
-                // 空闲检测：读空闲 60s，skip 5 次再触发
-                .addLast(new CustomIdleStateHandler(
-                        60, 0, 0, TimeUnit.SECONDS, 3
-                ))
-                // 休眠/唤醒逻辑（改为使用 ChannelManager）
-                .addLast(sleepStateHandler)
-                // 核心业务
+                .addLast(new CustomIdleStateHandler(60,0,0,TimeUnit.SECONDS,1))
+                .addLast(sleepStateHandler)  // 单例 @Sharable
                 .addLast(serverHandler);
     }
 }

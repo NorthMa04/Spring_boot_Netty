@@ -8,9 +8,10 @@ import io.netty.util.CharsetUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-/**
- * 响应全局空闲事件：进入休眠后由 ChannelManager 统一调度唤醒。
- */
+import javax.annotation.PostConstruct;
+import io.netty.channel.ChannelHandler.Sharable;
+
+@Sharable
 @Component
 public class SleepStateHandler extends ChannelInboundHandlerAdapter {
 
@@ -20,20 +21,31 @@ public class SleepStateHandler extends ChannelInboundHandlerAdapter {
     @Autowired
     private ChannelManager channelManager;
 
+    @PostConstruct
+    public void init() {
+        // 确保一开始所有 handlerAdded 的通道都在 working
+        // （可选，看业务是否需要一连入队）
+    }
+
+    @Override
+    public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
+        // 新连接加入 working 队列
+        ctx.channel().config().setAutoRead(true);
+        channelManager.addWorking(ctx.channel());
+        super.handlerAdded(ctx);
+    }
+
     @Override
     public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
-        // 只对读空闲事件生效，且当前未处于休眠
         if (isReaderIdle(evt) && !isSleeping(ctx)) {
             markSleeping(ctx, true);
 
-            // 1) 发休眠提示
             ctx.writeAndFlush(Unpooled.copiedBuffer(
                             "长时间无响应，进入休眠状态\n",
                             CharsetUtil.UTF_8
                     ))
                     .addListener((ChannelFutureListener) future -> {
                         if (future.isSuccess()) {
-                            // 2) 禁用自动读，移入 sleeping 队列
                             ctx.channel().config().setAutoRead(false);
                             channelManager.addSleeping(ctx.channel());
                             System.out.println(">> Channel 进入休眠: " + ctx.channel());
@@ -51,7 +63,7 @@ public class SleepStateHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (isSleeping(ctx)) {
-            // 唤醒：恢复自动读，移回 working 队列
+            // 客户端真的回数据，唤醒
             markSleeping(ctx, false);
             ctx.channel().config().setAutoRead(true);
             channelManager.addWorking(ctx.channel());
@@ -61,13 +73,15 @@ public class SleepStateHandler extends ChannelInboundHandlerAdapter {
     }
 
     @Override
-    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
-        // handler 被移除或通道关闭时，确保从队列中清理
+    public void channelInactive(ChannelHandlerContext ctx) throws Exception {
+        // 客户端断连时，彻底清理
         if (isSleeping(ctx)) {
             markSleeping(ctx, false);
-            channelManager.remove(ctx.channel());
         }
-        super.handlerRemoved(ctx);
+        channelManager.remove(ctx.channel());
+        // 恢复 autoRead，以防重连时被禁
+        ctx.channel().config().setAutoRead(true);
+        super.channelInactive(ctx);
     }
 
     private boolean isReaderIdle(Object evt) {

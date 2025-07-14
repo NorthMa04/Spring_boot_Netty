@@ -30,6 +30,10 @@ public class ChannelManager {
                 this::scanAndWake,
                 30, 30, TimeUnit.SECONDS
         );
+        scheduler.scheduleAtFixedRate(
+                this::printStats,
+                30, 30, TimeUnit.SECONDS
+        );
     }
 
     public void addWorking(Channel ch) {
@@ -58,7 +62,14 @@ public class ChannelManager {
             }
         }
     }
-
+    private void printStats() {
+        int w = workingChannels.size();
+        int s = sleepingChannels.size();
+        System.out.printf(
+                "[ChannelManager] Working clients: %d, Sleeping clients: %d%n",
+                w, s
+        );
+    }
     @PreDestroy
     public void shutdown() {
         scheduler.shutdownNow();

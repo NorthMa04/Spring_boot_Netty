@@ -90,9 +90,9 @@ public class NettyClient {
                         String rawJson = new String(bytes, StandardCharsets.UTF_8);
                         JsonNode dataNode = MAPPER.readTree(rawJson);
                         ObjectNode wrapper = MAPPER.createObjectNode();
-                        wrapper.put("clientId", clientId);
+                        //wrapper.put("clientId", clientId);
                         wrapper.set("data", dataNode);
-                        String toSend = MAPPER.writeValueAsString(wrapper);
+                        String toSend = MAPPER.writeValueAsString(dataNode);
 
                         channel.writeAndFlush(toSend);
                         System.out.print("请输入下一个 JSON 文件路径（或 quit 退出）：");
